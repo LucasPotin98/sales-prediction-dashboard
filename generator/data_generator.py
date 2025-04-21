@@ -14,9 +14,9 @@ np.random.seed(42)
 # Paramètres
 n_clients = 500
 n_products_per_family = 30
-families = ["Hoodie", "Oxford Shirt", "Activewear Top"]
+families = ["Hoodie", "Shirt", "Activewear"]
 channels = ["Store", "Online", "Mobile"]
-dates = pd.date_range(start="2023-03-01", end="2024-02-29", freq="D")
+dates = pd.date_range(start="2022-03-01", end="2024-02-29", freq="D")
 
 # Génération des produits
 products = []
@@ -46,7 +46,7 @@ for i in range(1, n_clients + 1):
 
 # Génération des transactions sous forme de paniers
 transactions = []
-for _ in range(3000):
+for _ in range(6000):
     client_id = f"C{random.randint(1, n_clients):04}"
     profile = client_profiles[client_id]
     date = random.choice(dates)
