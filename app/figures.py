@@ -19,9 +19,9 @@ def plot_family_distribution(grouped_df, selected_families):
     if n == 1:
         top_n = 20
     elif n == 2:
-        top_n = 12
+        top_n = 10
     else:
-        top_n = 7
+        top_n = 5
 
     for i, fam in enumerate(selected_families):
         fam_data = grouped_df[grouped_df['family'] == fam].sort_values('quantity', ascending=False).head(top_n)

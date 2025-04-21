@@ -1,4 +1,12 @@
+import pandas as pd
 import streamlit as st
+from app.utils import load_data
+from src.modeling import (
+    load_prophet_model, predict_with_prophet,
+    load_model, predict_with_xgboost,
+    load_naive_model, predict_with_naive,
+    prepare_future_for_xgboost,prepare_aggregated
+)
 
 st.set_page_config(page_title="🧠 Modélisation des ventes", page_icon="🧠")
 
@@ -10,10 +18,21 @@ st.markdown(
 )
 
 # Choix de la famille
-selected_family = st.selectbox("Famille de produits :", ["Sweater", "Formal Shirt", "Sportswear Shirt"])
+family = st.selectbox("Famille de produits :", ["Shirt", "Activewear", "Hoodie"])
 
 # Choix du modèle
-model_choice = st.radio("Modèle :", ["Naïf (valeur t−1)", "XGBoost", "XGBoost optimisé"])
+model_map = {
+    "Naïf (valeur t−1)": "naive",
+    "XGBoost": "xgboost",
+    "Prophet": "prophet"
+}
+model_choice = st.radio("Modèle :", ["Naïf (valeur t−1)", "XGBoost", "Prophet"])
+model_key = model_map[model_choice]
+
+
+# Load du DS de Test :
+df_test_raw = load_data("data/raw/clean_transactions_test.csv")
+df_test = prepare_aggregated(df_test_raw)
 
 # Choix de l’horizon
 horizon = st.slider("Horizon de prévision (en semaines) :", min_value=4, max_value=24, step=4, value=12)
@@ -21,8 +40,21 @@ horizon = st.slider("Horizon de prévision (en semaines) :", min_value=4, max_va
 # Lancer la modélisation
 if st.button("Lancer la modélisation"):
 
-    # 💡 Placeholder : à remplacer par appels à src/modeling plus tard
-    st.success(f"📦 Modélisation lancée pour la famille **{selected_family}** sur {horizon} semaines à l’aide du modèle **{model_choice}**")
+    if model_key == "naive":
+        model = load_model("naive", family)
+        future_dates = pd.date_range(start=df_test["date"].max() + pd.Timedelta(weeks=1), periods=horizon, freq="W-MON")
+        pred_df = predict_with_naive(model, future_dates=future_dates, family=family)
+
+    elif model_key == "xgboost":
+        model = load_model("xgboost", family)
+        df_future = prepare_future_for_xgboost(df_test, horizon)
+        df_future["family"] = family
+        pred_df = predict_with_xgboost(model, df_future)
+
+    elif model_key == "prophet":
+        model = load_prophet_model(family)
+        pred_df = predict_with_prophet(model, periods=horizon)
+        pred_df = pred_df[pred_df["date"] > df_test["date"].max()]
 
     st.subheader("📈 Courbe des ventes réelles vs prédites")
     st.info("⏳ Chargement de la figure…")
