@@ -49,3 +49,4 @@ def run_data_cleaning(input_path="data/raw/transactions.csv", output_path="data/
 
 if __name__ == "__main__":
     run_data_cleaning()
+    run_data_cleaning(input_path="data/raw/transactions_test.csv", output_path="data/processed/clean_transactions_test.csv")

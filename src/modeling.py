@@ -22,7 +22,7 @@ def prepare_aggregated(df, date_col='date', family_col='family', quantity_col='q
     df = add_temporal_features(df, date_col=date_col)
     # Aggregation par semaine + année et date
     
-    weekly_sales_by_family = df.groupby(['family', 'year','month', 'week']).agg(
+    weekly_sales_by_family = df.groupby(['family', 'year','month', 'week','week_start']).agg(
         {
             'price_initial': 'mean',  # Average selling price
             'price_sold': 'mean',  # Average initial price
@@ -31,6 +31,7 @@ def prepare_aggregated(df, date_col='date', family_col='family', quantity_col='q
             'quantity': 'sum'  # Total quantity sold
         }
     ).reset_index()
+    weekly_sales_by_family = weekly_sales_by_family.rename(columns={"week_start": "date"})
     return weekly_sales_by_family
 
 
@@ -61,6 +62,8 @@ def add_temporal_features(df, date_col="date"):
     df["month"] = df[date_col].dt.month
     df["year"] = df[date_col].dt.year
     df["week"] = df[date_col].dt.isocalendar().week
+    df["week_start"] = df[date_col] - pd.to_timedelta(df[date_col].dt.weekday, unit='D')
+    df["week_start"] = df["week_start"].dt.normalize()
     return df
 
 
@@ -159,14 +162,19 @@ def train_all_models(df):
 
 
 
-def predict_with_prophet(model, periods=6, freq="W-MON"):
-    """
-    Prédit les valeurs futures avec un modèle Prophet déjà entraîné.
-    
-    Returns:
-        DataFrame avec les colonnes ['date', 'prediction']
-    """
+def predict_with_prophet(model, periods=6, freq="W-MON", return_only_future=True):
     future = model.make_future_dataframe(periods=periods, freq=freq)
     forecast = model.predict(future)
-    return forecast[["ds", "yhat"]].rename(columns={"ds": "date", "yhat": "prediction"})
+    forecast = forecast[["ds", "yhat"]].rename(columns={"ds": "date", "yhat": "prediction"})
 
+    if return_only_future:
+        last_train_date = model.history["ds"].max()
+        forecast = forecast[forecast["date"] > last_train_date]
+
+    return forecast
+
+if __name__ == "__main__":
+    # Exemple d'utilisation
+    df = pd.read_csv("data/processed/clean_transactions.csv")
+    df = prepare_aggregated(df)
+    train_all_models(df)

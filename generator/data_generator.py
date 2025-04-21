@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import random
 from faker import Faker
-from datetime import datetime, timedelta
+from datetime import datetime
 import uuid
 import os
 
@@ -38,26 +38,43 @@ for family in families:
 products_df = pd.DataFrame(products)
 
 # Création des profils clients
-client_profiles = {}
-for i in range(1, n_clients + 1):
-    profile = random.choices(
-        population=["sportif", "formel", "urbain"],
-        weights=[0.3, 0.3, 0.4],
-        k=1
+client_profiles = {
+    f"C{i:04}": random.choices(
+        ["sportif", "formel", "urbain"],
+        weights=[0.3, 0.3, 0.4]
     )[0]
-    client_profiles[f"C{i:04}"] = profile
+    for i in range(1, n_clients + 1)
+}
 
-# Fonction de facteur saisonnier
+# 🎯 Nouveau : Effets saisonniers marqués
 def seasonal_multiplier(family, month):
     if family == "Hoodie":
-        return 1.4 if month in [11, 12, 1, 2] else 0.8
+        if month in [12, 1]:
+            return 3.0  # Pic central (décembre, janvier)
+        elif month in [11, 2]:
+            return 2.0  # Bords de saison
+        else:
+            return 0.6  # Hors saison
+
     elif family == "Activewear":
-        return 1.5 if month in [5, 6, 7, 8] else 0.7
+        if month in [6, 7]:
+            return 3.2
+        elif month in [5, 8]:
+            return 2.0
+        else:
+            return 0.6
+
     elif family == "Shirt":
-        return 1.2 if month in [3, 4, 5, 9] else 1.0
+        if month in [4, 5]:
+            return 2.2
+        elif month in [3, 9]:
+            return 1.5
+        else:
+            return 0.9
+
     return 1.0
 
-# Fonction de génération de transactions
+# 🔁 Génération des transactions (version lissée + pics)
 def generate_transactions(dates, n_days):
     transactions = []
     for _ in range(n_days):
@@ -68,7 +85,6 @@ def generate_transactions(dates, n_days):
         channel = random.choice(channels)
         n_items = np.random.randint(2, 6)
 
-        # Choix biaisé des familles selon le profil
         if profile == "sportif":
             chosen_families = random.choices(families, weights=[1, 1, 8], k=n_items)
         elif profile == "formel":
@@ -78,14 +94,13 @@ def generate_transactions(dates, n_days):
 
         for fam in chosen_families:
             product = products_df[products_df["family"] == fam].sample(1).iloc[0]
-            quantity = max(1, int((np.random.poisson(1) + 1) * seasonal_multiplier(fam, month)))
+            base_quantity = np.random.normal(loc=5, scale=1)  # stable, peu de variance
+            quantity = int(np.clip(base_quantity * seasonal_multiplier(fam, month), 1, 25))
             base_price = product["price_initial"]
 
-            if channel == "Online":
-                discount = round(np.random.uniform(0.1, 0.3) * base_price, 2)
-            else:
-                discount = round(np.random.uniform(0.0, 0.2) * base_price, 2)
-
+            discount = round(
+                np.random.uniform(0.1, 0.3 if channel == "Online" else 0.2) * base_price, 2
+            )
             price_sold = max(0.0, base_price - discount)
             revenue = round(price_sold * quantity, 2)
 
@@ -106,11 +121,11 @@ def generate_transactions(dates, n_days):
 
     return pd.DataFrame(transactions)
 
-# Génération des transactions
+# Génération
 train_df = generate_transactions(train_dates, n_days=6000)
 test_df = generate_transactions(test_dates, n_days=1500)
 
-# Ajout de valeurs aberrantes et NaN (uniquement dans le train)
+# 💥 Ajout d’anomalies et NaN dans le train uniquement
 outliers = np.random.choice(train_df.index, size=20, replace=False)
 train_df.loc[outliers, "quantity"] *= 10
 train_df.loc[outliers, "revenue"] = train_df.loc[outliers, "price_sold"] * train_df.loc[outliers, "quantity"]
@@ -120,5 +135,7 @@ train_df.loc[nans, "price_sold"] = np.nan
 
 # Sauvegarde
 os.makedirs("data/raw", exist_ok=True)
-train_df.to_csv("data/raw/transactions_train.csv", index=False)
+train_df.to_csv("data/raw/transactions.csv", index=False)
 test_df.to_csv("data/raw/transactions_test.csv", index=False)
+
+print("✅ Données générées avec saisonnalité marquée et lissage hebdo.")

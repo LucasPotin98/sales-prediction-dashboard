@@ -1,12 +1,12 @@
 import pandas as pd
 import streamlit as st
-from app.utils import load_data
+from app.utils import load_data, load_model, load_prophet_model
+from app.figures import plot_predictions_vs_truth
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from src.modeling import (
-    load_prophet_model, predict_with_prophet,
-    load_model, predict_with_xgboost,
-    load_naive_model, predict_with_naive,
-    prepare_future_for_xgboost,prepare_aggregated
+    predict_with_prophet,prepare_aggregated
 )
+
 
 st.set_page_config(page_title="🧠 Modélisation des ventes", page_icon="🧠")
 
@@ -31,7 +31,7 @@ model_key = model_map[model_choice]
 
 
 # Load du DS de Test :
-df_test_raw = load_data("data/raw/clean_transactions_test.csv")
+df_test_raw = load_data("data/processed/clean_transactions_test.csv")
 df_test = prepare_aggregated(df_test_raw)
 
 # Choix de l’horizon
@@ -39,6 +39,7 @@ horizon = st.slider("Horizon de prévision (en semaines) :", min_value=4, max_va
 
 # Lancer la modélisation
 if st.button("Lancer la modélisation"):
+    df_test_family = df_test[df_test["family"] == family]
 
     if model_key == "naive":
         model = load_model("naive", family)
@@ -54,15 +55,31 @@ if st.button("Lancer la modélisation"):
     elif model_key == "prophet":
         model = load_prophet_model(family)
         pred_df = predict_with_prophet(model, periods=horizon)
-        pred_df = pred_df[pred_df["date"] > df_test["date"].max()]
+        print(pred_df)
+        test_dates = df_test_family["date"].unique()
+        pred_df = pred_df[pred_df["date"].isin(test_dates)]
+    
+    print(df_test_family)
 
+    st.write("Dates test :", df_test_family["date"].min(), "->", df_test_family["date"].max())
+    st.write("Dates prédictions :", pred_df["date"].min(), "->", pred_df["date"].max())
+    df_eval = df_test_family.merge(pred_df, on="date", how="inner")
+    y_true = df_eval["quantity"]
+    y_pred = df_eval["prediction"]
+    
+    rmse = mean_squared_error(y_true, y_pred, squared=False)
+    mae = mean_absolute_error(y_true, y_pred)
+    r2 = r2_score(y_true, y_pred)
     st.subheader("📈 Courbe des ventes réelles vs prédites")
-    st.info("⏳ Chargement de la figure…")
+    
+    fig = plot_predictions_vs_truth(df_eval, family_name=family)
+    st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("📊 Évaluation du modèle")
-    st.metric(label="RMSE", value="476 802")
-    st.metric(label="MAE", value="320 441")
-    st.metric(label="R²", value="0.991")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("RMSE", f"{rmse:,.0f}")
+    col2.metric("MAE", f"{mae:,.0f}")
+    col3.metric("R²", f"{r2:.3f}")
 
     st.markdown("📌 *Le modèle capture très bien les effets saisonniers de la famille choisie. "
                 "On observe une précision élevée même lors des pics de vente.*")
