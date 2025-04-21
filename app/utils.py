@@ -1,5 +1,8 @@
 import pandas as pd
+import os
+import joblib
 import streamlit as st
+from prophet.serialize import model_from_json
 
 @st.cache_data
 def load_data(path="data/raw/transactions.csv"):
@@ -16,3 +19,24 @@ def get_kpis(df):
         "quantite_totale": df['quantity'].sum()
     }
     return kpis
+
+
+def load_model(family: str, model_name: str):
+    model_key = f"{model_name.lower()}_{family.lower()}"
+    model_path = os.path.join("models", f"{model_key}.pkl")
+
+    if not os.path.exists(model_path):
+        st.error(f"Modèle introuvable : {model_path}")
+        st.stop()
+
+    return joblib.load(model_path)
+
+
+def load_prophet_model(family, path_dir="models"):
+    """
+    Charge un modèle Prophet depuis un fichier .json
+    """
+    filename = f"model_prophet_{family.lower()}.json"
+    path = os.path.join(path_dir, filename)
+    with open(path, "r") as fin:
+        return model_from_json(fin.read())
