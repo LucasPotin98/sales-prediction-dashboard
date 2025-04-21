@@ -1,8 +1,6 @@
 import streamlit as st
 from app.utils import load_data, get_kpis
-
-# Chargement des données
-st.cache_data
+st.set_page_config(page_title="Contexte & Données", page_icon="📦")
 
 df = load_data()
 kpis = get_kpis(df)
