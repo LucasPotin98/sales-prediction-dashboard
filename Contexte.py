@@ -77,5 +77,5 @@ st.subheader("🧾 Exemple de données")
 st.dataframe(df.head())
 
 # Liens
-st.markdown("[🔗 Code source sur GitHub](https://https://github.com/LucasPotin98/sales-prediction-dashboard)  ")
+st.markdown("[🔗 Code source sur GitHub](https://github.com/LucasPotin98/sales-prediction-dashboard)  ")
 st.download_button("📥 Télécharger les données", data=df.to_csv(index=False), file_name="sales_transactions.csv")
