@@ -1,0 +1,50 @@
+{
+    "analyses": {
+      "saisonnalite": {
+        "Shirt": "Analyse des tendances saisonnières pour la famille Shirt. Courbes modérément saisonnières, avec des hausses au printemps-automne, notamment autour de avril et septembre.",
+        "Activewear": "Analyse des tendances saisonnières pour la famille Activewear. Très forte saisonnalité estivale, avec des pics massifs en juin-juillet chaque année, puis chute rapide.",
+        "Hoodie": "Analyse des tendances saisonnières pour la famille Hoodie. Courbe stable et basse, peu de saisonnalité, reflète une demande régulière mais modeste."
+      },
+      "repartition_ventes": {
+        "Shirt": "Analyse des répartitions produits pour la famille Shirt. Une référence domine très largement les ventes, tandis que les autres produits présentent des volumes comparables.",
+        "Activewear": "Analyse des répartitions produits pour la famille Activewear. Deux produits concentrent plus des deux tiers des ventes, les autres sont nettement en retrait.",
+        "Hoodie": "Analyse des répartitions produits pour la famille Hoodie. Une référence se détache clairement, mais la majorité des ventes est répartie de façon relativement homogène entre les autres modèles."
+        }
+    },
+    "modelisation": {
+      "naive": {
+        "methodologie": "La méthode naïve repose sur une prédiction basée sur la valeur de la semaine précédente, moyennée sur les 3 dernières semaines.",
+        "features": ["Moyenne mobile sur 3 semaines"],
+        "avantages": "Simple à implémenter, rapide à calculer, idéal pour une première approche.",
+        "inconvenients": "Ne tient pas compte des tendances saisonnières et des autres facteurs externes.",
+        "analyse_familles": {
+          "Shirt": "Le modèle sous-estime systématiquement les ventes, avec des prédictions trop lissées et déconnectées des variations réelles.",
+          "Activewear": "Le modèle sous-estime systématiquement les ventes, avec des prédictions trop lissées et déconnectées des variations réelles.",
+          "Hoodie": "Le modèle parvient à suivre la tendance moyenne mais échoue à capturer les pics et creux marqués des ventes réelles."
+        }
+      },
+      "xgboost": {
+        "methodologie": "XGBoost est un modèle d'apprentissage supervisé utilisant des arbres de décision boostés pour prédire les ventes en fonction de différentes caractéristiques temporelles et des ventes passées.",
+        "features": ["Semaine", "Mois", "Année", "Taux de remise moyen", "Boost publicitaire en cours"],
+        "avantages": "Modèle puissant, capable de capturer des interactions complexes entre les variables.",
+        "inconvenients": "Modèle complexe et potentiellement plus long à entraîner, nécessite un réglage fin des hyperparamètres.",
+        "analyse_familles": {
+          "Shirt": "Le modèle suit globalement bien les tendances, malgré quelques décalages sur les pics et creux ponctuels.",
+          "Activewear": "Les prévisions sont globalement très bonnes, le modèle suit bien la montée saisonnière — mais Prophet reste plus adapté à la dynamique marquée et régulière d’Activewear.",
+          "Hoodie": "Les prévisions suivent bien les variations, avec une bonne réactivité sur les pics et creux — XGBoost capte efficacement les signaux liés aux promotions."
+        }
+      },
+      "prophet": {
+        "methodologie": "Prophet est un modèle de prévision basé sur des composants saisonniers et une tendance non linéaire, adapté aux séries temporelles avec des tendances multiples.",
+        "features": ["Date"],
+        "avantages": "Capable de gérer les tendances saisonnières. Pratique pour les prévisions sur des séries temporelles avec des anomalies régulières.",
+        "inconvenients": "Le modèle ne prend pas en compte les variables explicatives comme les promotions ou les remises",
+        "analyse_familles": {
+          "Shirt": "Le modèle suit bien les tendances globales de vente, mais il a du mal à anticiper certains pics brusques",
+          "Activewear": "Excellente performance de Prophet sur la famille Activewear. Le modèle surpasse XGBoost grâce à sa capacité à capturer des effets saisonniers lissés et réguliers, typiques de cette famille.",
+          "Hoodie": "Le modèle Prophet ne parvient pas à capturer correctement les irrégularités de la famille Hoodie, qui dépend peu des effets saisonniers. Les fluctuations étant souvent liées à des promotions ou à des comportements clients spécifiques, XGBoost est ici plus adapté."
+        }
+      }
+    }
+  }
+  
