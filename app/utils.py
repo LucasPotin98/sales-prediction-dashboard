@@ -24,8 +24,8 @@ def get_kpis(df):
     return kpis
 
 
-def load_model(family: str, model_name: str):
-    model_key = f"{model_name.lower()}_{family.lower()}"
+def load_model(model_name: str, family: str):
+    model_key = f"model_{model_name.lower()}_{family.lower()}"
     model_path = os.path.join("models", f"{model_key}.pkl")
 
     if not os.path.exists(model_path):

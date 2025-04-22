@@ -6,6 +6,24 @@ import joblib
 from xgboost import XGBRegressor
 import numpy as np
 
+def load_discount_and_promo_dicts(discount_path="data/avg_discount.csv", promo_path="data/promotion_type.csv"):
+    discount_df = pd.read_csv(discount_path)
+    promo_df = pd.read_csv(promo_path)
+
+    # avg_discount_dict[fam][year][week] = avg_discount
+    avg_discount_dict = {}
+    for _, row in discount_df.iterrows():
+        fam, year, week, val = row["family"], int(row["year"]), int(row["week"]), float(row["avg_discount"])
+        avg_discount_dict.setdefault(fam, {}).setdefault(year, {})[week] = val
+
+    # promotion_type_dict[fam][year][week] = promotion_type
+    promotion_type_dict = {}
+    for _, row in promo_df.iterrows():
+        fam, year, week, val = row["family"], int(row["year"]), int(row["week"]), row["promotion_type"]
+        promotion_type_dict.setdefault(fam, {}).setdefault(year, {})[week] = val
+
+    return avg_discount_dict, promotion_type_dict
+
 def add_lag_features(df, lag_col='quantity', lags=[1]):
     for lag in lags:
         df[f"lag_{lag}"] = df[lag_col].shift(lag)
@@ -56,13 +74,6 @@ def add_temporal_features(df, date_col="date"):
 
     # Sorting by date
     df = df.sort_values(by=date_col)
-    return df
-
-
-def build_features(df, lag_col='quantity', lags=[1], rolling_windows=[3]):
-    df = df.copy()
-    df = add_lag_features(df, lag_col=lag_col, lags=lags)
-    df = add_rolling_features(df, col=lag_col, windows=rolling_windows)
     return df
 
 
@@ -131,24 +142,85 @@ def predict_with_naive(df, periods=6, freq="W-MON", date_col="date", quantity_co
 
 ######## Partie XGBoost ########
 
-def train_xgboost_model(df, target_col="quantity", date_col="date"):
-    """
-    Entraîne un modèle XGBoost sur les features déjà construites.
-    """
-    df = df.copy().sort_values(date_col)
-    y = df[target_col]
-    X = df.drop(columns=[target_col, date_col, "family"])
-    
-    model = XGBRegressor(
-        n_estimators=100,
-        learning_rate=0.1,
-        max_depth=5,
-        random_state=42
+def prepare_features(df, family, quantity_col="quantity"):
+    df = df.copy()
+    df = add_temporal_features(df)
+    avg_discount_dict, promotion_type_dict = load_discount_and_promo_dicts()
+    df["avg_discount"] = df.apply(
+        lambda row: avg_discount_dict.get(family, {}).get(row["year"], {}).get(row["week"], 0), axis=1
     )
+
+    # 📢 Type de promotion
+    df["promotion_type"] = df.apply(
+        lambda row: promotion_type_dict.get(family, {}).get(row["year"], {}).get(row["week"], "none"), axis=1
+    )
+    # One hot
+    df["is_promo_online"] = df["promotion_type"].isin(["online", "both"]).astype(int)
+    df["is_promo_store"] = df["promotion_type"].isin(["store", "both"]).astype(int)
+
+    # Drop promotion type
+    df = df.drop(columns=["promotion_type"])
+
+    return df
+
+
+def train_xgboost(X, y):
+    
+    # Créer le modèle XGBoost
+    model = XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=6)
+    
+    # Entraîner le modèle
     model.fit(X, y)
+    
     return model
 
+def predict_with_xgboost(model, horizon, X_train,family):
+   
+    last_date = pd.to_datetime(X_train["date"]).max()
+    future_dates = pd.date_range(start=last_date + pd.Timedelta(weeks=1), periods=horizon, freq="W-MON")
+    avg_discount_dict, promotion_type_dict = load_discount_and_promo_dicts()
+    predictions = []
 
+    for date in future_dates:
+        year = date.year
+        month = date.month
+        week = date.isocalendar().week
+
+        # Récupération dans les dictionnaires
+        avg_discount = avg_discount_dict.get(family, {}).get(year, {}).get(week, 0)
+        promo_type = promotion_type_dict.get(family, {}).get(year, {}).get(week, "none")
+
+        is_promo_online = int(promo_type in ["online", "both"])
+        is_promo_store = int(promo_type in ["store", "both"])
+
+        # Création du vecteur de features
+        X_pred = pd.DataFrame([{
+            "month": month,
+            "year": year,
+            "week": week,
+            "avg_discount": avg_discount,
+            "is_promo_online": is_promo_online,
+            "is_promo_store": is_promo_store
+        }])
+
+        # Prédiction
+        y_pred = model.predict(X_pred)[0]
+        predictions.append({"date": date, "prediction": y_pred})
+    return pd.DataFrame(predictions)
+
+
+def save_model(model, model_name, family, path_dir="models"):
+    # Crée le dossier si il n'existe pas
+    os.makedirs(path_dir, exist_ok=True)
+
+    # Définir le chemin du fichier pour sauvegarder
+    filename = f"model_{model_name}_{family.lower()}.pkl"
+    model_path = os.path.join(path_dir, filename)
+
+    # Sauvegarde du modèle
+    joblib.dump(model, model_path)
+
+    print(f"Modèle {model_name} sauvegardé sous {model_path}")
 
 ####### Partie Prophet ########
 
@@ -201,7 +273,7 @@ def train_all_models(df):
 
     for fam in families:
         print(f"🔁 Entraînement des modèles pour la famille : {fam}")
-        
+
         # Filtrage + groupement hebdo
         df_fam = df[df["family"] == fam].copy()
         df_fam["date"] = pd.to_datetime(df_fam["date"])
@@ -210,11 +282,20 @@ def train_all_models(df):
         weekly = weekly.rename(columns={"week_start": "date"})
 
         ##### XGBoost #####
-        xgb_df = build_features(weekly.copy())
-        xgb_df["family"] = fam
+        xgb_df = prepare_features(weekly.copy(),fam)
+        print(xgb_df)
         xgb_df = xgb_df.dropna()
-        xgb_model = train_xgboost_model(xgb_df)
-        save_model_pkl(xgb_model, method="xgboost", family=fam)
+        
+        # Entraînement de XGBoost
+        # Séparer les features et la cible
+        X = xgb_df.drop(columns=["date", "quantity", "week_start"])
+        print(X)
+        y = xgb_df["quantity"]
+        # Entraîner le modèle
+        xgb_model = train_xgboost(X, y)
+        save_model(xgb_model, "xgboost", family=fam)
+        print(f"✅ Modèle XGBoost sauvegardé pour : {fam}")
+
 
         ##### Prophet #####
         prophet_model = train_prophet_model(weekly.copy())

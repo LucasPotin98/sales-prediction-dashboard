@@ -6,55 +6,51 @@ from datetime import datetime
 import uuid
 import os
 
-# Initialisation
-fake = Faker()
-random.seed(42)
-np.random.seed(42)
 
-# Paramètres
-n_clients = 500
-n_products_per_family = 30
-families = ["Hoodie", "Shirt", "Activewear"]
-channels = ["Store", "Online", "Mobile"]
+def generate_discount_and_promotion_data(families, years, weeks):
+    avg_discount_dict = {
+        "Shirt": {y: {w: np.random.uniform(0.05, 0.20) for w in weeks} for y in years},
+        "Activewear": {y: {w: np.random.uniform(0.10, 0.25) for w in weeks} for y in years},
+        "Hoodie": {y: {w: np.random.uniform(0.02, 0.15) for w in weeks} for y in years}
+    }
 
-# Dates : 24 mois train + 6 mois test
-train_dates = pd.date_range(start="2022-03-01", end="2024-02-29", freq="D")
-test_dates = pd.date_range(start="2024-03-01", end="2024-08-31", freq="D")
+    promotion_type_dict = {
+        fam: {y: {w: np.random.choice(["online", "store", "both", "none"]) for w in weeks} for y in years}
+        for fam in families
+    }
 
-# Génération des produits
-products = []
-for family in families:
-    for i in range(n_products_per_family):
-        product_id = f"P{len(products):04}"
-        label = f"{family} {random.choice(['Z', 'X', 'M', 'A'])}{random.randint(10,99)}"
-        price = round(np.random.uniform(20, 100), 2)
-        products.append({
-            "product_id": product_id,
-            "product_label": label,
-            "family": family,
-            "price_initial": price
-        })
-products_df = pd.DataFrame(products)
+    discount_data = []
+    promotion_data = []
 
-# Profils clients
-client_profiles = {
-    f"C{i:04}": random.choices(["sportif", "formel", "urbain"], weights=[0.3, 0.3, 0.4])[0]
-    for i in range(1, n_clients + 1)
-}
+    for family in families:
+        for year in years:
+            for week in weeks:
+                avg_discount = avg_discount_dict[family][year][week]
+                promotion_type = promotion_type_dict[family][year][week]
+                discount_data.append([family, year, week, avg_discount])
+                promotion_data.append([family, year, week, promotion_type])
 
-# 🎯 Saisonnalité par famille et mois
+    discount_df = pd.DataFrame(discount_data, columns=["family", "year", "week", "avg_discount"])
+    promotion_df = pd.DataFrame(promotion_data, columns=["family", "year", "week", "promotion_type"])
+
+    discount_df.to_csv("data/avg_discount.csv", index=False)
+    promotion_df.to_csv("data/promotion_type.csv", index=False)
+
+    return discount_df, promotion_df
+
+
 def seasonal_multiplier(family, month):
     if family == "Activewear":
         if month == 5:
             return 2.0
         elif month == 6:
-            return 3.2  # pic fort début été
+            return 3.2
         elif month in [7, 8]:
-            return 2.5  # plateau lissé
+            return 2.5
         else:
             return 0.6
     elif family == "Hoodie":
-        return 1.1  # quasi-plat, dépend surtout des remises
+        return 1.1
     elif family == "Shirt":
         if month in [4, 5]:
             return 2.2
@@ -64,15 +60,14 @@ def seasonal_multiplier(family, month):
             return 0.9
     return 1.0
 
-# 🔁 Modulateur hebdo doux (forme en cloche)
+
 def weekly_modulator(week_number):
     return 1 + 0.5 * np.exp(-((week_number - 26) / 4)**2)
 
-# 🔄 Génération des transactions
+
 def generate_transactions(dates, n_days):
     transactions = []
 
-    # Base stable hebdomadaire
     weekly_quantity_map = {}
     for date in dates:
         year, week = date.isocalendar().year, date.isocalendar().week
@@ -99,10 +94,31 @@ def generate_transactions(dates, n_days):
             base_price = product["price_initial"]
 
             year, week = date.isocalendar().year, date.isocalendar().week
-            base_quantity = weekly_quantity_map[(year, week, fam)]
             seasonal = seasonal_multiplier(fam, month)
             modulation = weekly_modulator(week)
-            quantity = int(np.clip(base_quantity * seasonal * modulation, 1, 25))
+
+            promo_type = promotion_df.query(
+                "family == @fam and year == @year and week == @week"
+            )["promotion_type"].values[0] if not promotion_df.empty else "none"
+
+            if fam == "Activewear":
+                quantity = int(np.clip(5 * seasonal * modulation, 1, 25))
+            elif fam == "Hoodie":
+                promo_boost = {
+                    "online": 2.0,
+                    "store": 1.5,
+                    "both": 2.5,
+                    "none": 1.0
+                }.get(promo_type, 1.0)
+                quantity = int(np.clip(5 * promo_boost, 1, 25))
+            elif fam == "Shirt":
+                promo_boost = {
+                    "online": 1.1,
+                    "store": 1.0,
+                    "both": 1.2,
+                    "none": 1.0
+                }.get(promo_type, 1.0)
+                quantity = int(np.clip(5 * seasonal * modulation * promo_boost, 1, 25))
 
             discount = round(
                 np.random.uniform(0.1, 0.3 if channel == "Online" else 0.2) * base_price, 2
@@ -127,11 +143,46 @@ def generate_transactions(dates, n_days):
 
     return pd.DataFrame(transactions)
 
-# Génération des jeux
+
+# Initialisation
+fake = Faker()
+random.seed(42)
+np.random.seed(42)
+
+n_clients = 500
+n_products_per_family = 30
+families = ["Hoodie", "Shirt", "Activewear"]
+channels = ["Store", "Online"]
+years = [2022, 2023, 2024]
+weeks = list(range(1, 53))
+
+train_dates = pd.date_range(start="2022-03-01", end="2024-02-29", freq="D")
+test_dates = pd.date_range(start="2024-03-01", end="2024-08-31", freq="D")
+
+discount_df, promotion_df = generate_discount_and_promotion_data(families, years, weeks)
+
+products = []
+for family in families:
+    for i in range(n_products_per_family):
+        product_id = f"P{len(products):04}"
+        label = f"{family} {random.choice(['Z', 'X', 'M', 'A'])}{random.randint(10,99)}"
+        price = round(np.random.uniform(20, 100), 2)
+        products.append({
+            "product_id": product_id,
+            "product_label": label,
+            "family": family,
+            "price_initial": price
+        })
+products_df = pd.DataFrame(products)
+
+client_profiles = {
+    f"C{i:04}": random.choices(["sportif", "formel", "urbain"], weights=[0.3, 0.3, 0.4])[0]
+    for i in range(1, n_clients + 1)
+}
+
 train_df = generate_transactions(train_dates, n_days=6000)
 test_df = generate_transactions(test_dates, n_days=1500)
 
-# 💥 Anomalies et NaN dans le train
 outliers = np.random.choice(train_df.index, size=20, replace=False)
 train_df.loc[outliers, "quantity"] *= 10
 train_df.loc[outliers, "revenue"] = train_df.loc[outliers, "price_sold"] * train_df.loc[outliers, "quantity"]
@@ -139,9 +190,8 @@ train_df.loc[outliers, "revenue"] = train_df.loc[outliers, "price_sold"] * train
 nans = np.random.choice(train_df.index, size=20, replace=False)
 train_df.loc[nans, "price_sold"] = np.nan
 
-# Sauvegarde
 os.makedirs("data/raw", exist_ok=True)
 train_df.to_csv("data/raw/transactions.csv", index=False)
 test_df.to_csv("data/raw/transactions_test.csv", index=False)
 
-print("✅ Données régénérées avec saisonnalité lissée, modulateur hebdo et structure réaliste.")
+print("✅ Données régénérées avec comportements différenciés par famille.")

@@ -5,7 +5,7 @@ from app.utils import load_data, load_model, load_prophet_model, load_all_data
 from app.figures import plot_predictions_vs_truth
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from src.modeling import (
-    predict_with_prophet,prepare_aggregated,predict_with_naive
+    predict_with_prophet,prepare_aggregated,predict_with_naive,predict_with_xgboost
 )
 
 
@@ -106,21 +106,15 @@ if st.button("Lancer la modélisation"):
     if model_key == "naive":
         pred_df = predict_with_naive(df_train_family, periods=horizon)
 
-        test_dates = df_test_family["date"].unique()
-        pred_df = pred_df[pred_df["date"].isin(test_dates)]
-
     elif model_key == "xgboost":
         model = load_model("xgboost", family)
-        
-        df_future = prepare_future_for_xgboost(df_test, horizon)
-        df_future["family"] = family
-        pred_df = predict_with_xgboost(model, df_future)
+        pred_df = predict_with_xgboost(model, horizon,df_train_family,family)
 
     elif model_key == "prophet":
         model = load_prophet_model(family)
         pred_df = predict_with_prophet(model, periods=horizon)
-        test_dates = df_test_family["date"].unique()
-        pred_df = pred_df[pred_df["date"].isin(test_dates)]
+    test_dates = df_test_family["date"].unique()
+    pred_df = pred_df[pred_df["date"].isin(test_dates)]
     
 
     df_eval = df_test_family.merge(pred_df, on="date", how="inner")
