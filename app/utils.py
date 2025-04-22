@@ -3,6 +3,9 @@ import os
 import joblib
 import streamlit as st
 from prophet.serialize import model_from_json
+from src.modeling import prepare_aggregated
+
+
 
 @st.cache_data
 def load_data(path="data/raw/transactions.csv"):
@@ -40,3 +43,10 @@ def load_prophet_model(family, path_dir="models"):
     path = os.path.join(path_dir, filename)
     with open(path, "r") as fin:
         return model_from_json(fin.read())
+    
+def load_all_data():
+    df_train_raw = load_data("data/processed/clean_transactions.csv")
+    df_train = prepare_aggregated(df_train_raw)
+    df_test_raw = load_data("data/processed/clean_transactions_test.csv")
+    df_test = prepare_aggregated(df_test_raw)
+    return df_train, df_test

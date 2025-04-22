@@ -4,6 +4,7 @@ from prophet.serialize import model_to_json
 import os
 import joblib
 from xgboost import XGBRegressor
+import numpy as np
 
 def add_lag_features(df, lag_col='quantity', lags=[1]):
     for lag in lags:
@@ -44,6 +45,19 @@ def prepare_aggregated(df, date_col='date', family_col='family', quantity_col='q
     return weekly_sales
 
 
+def add_temporal_features(df, date_col="date"):
+    df = df.copy()
+    df[date_col] = pd.to_datetime(df[date_col])
+    df["month"] = df[date_col].dt.month
+    df["year"] = df[date_col].dt.year
+    df["week"] = df[date_col].dt.isocalendar().week
+    df["week_start"] = df[date_col] - pd.to_timedelta(df[date_col].dt.weekday, unit='D')
+    df["week_start"] = df["week_start"].dt.normalize()
+
+    # Sorting by date
+    df = df.sort_values(by=date_col)
+    return df
+
 
 def build_features(df, lag_col='quantity', lags=[1], rolling_windows=[3]):
     df = df.copy()
@@ -53,39 +67,66 @@ def build_features(df, lag_col='quantity', lags=[1], rolling_windows=[3]):
 
 
 ####### Partie modèle NAIF ########
-class NaiveMeanModel:
-    def __init__(self, forecast_df):
+class NaiveRollingMeanModel:
+    def __init__(self, forecast_df, window=3, variation_factor=0.05):
         """
-        forecast_df : DataFrame contenant au moins ['date', 'family', 'rolling_mean_t1']
+        forecast_df : DataFrame contenant au moins ['date', 'family', 'quantity']
+        window : Taille de la fenêtre pour la moyenne glissante (par exemple, 3 semaines)
+        variation_factor : Facteur de variation ajouté pour rendre les prédictions moins statiques
         """
-        self.lookup = forecast_df[["date", "family", "rolling_mean_t1"]]
+        self.lookup = forecast_df[["date", "quantity"]]
+        self.window = window
+        self.variation_factor = variation_factor
 
-    def predict(self, dates, family):
-        df = self.lookup.copy()
-        sub = df[(df["family"] == family) & (df["date"].isin(dates))]
-        return sub.sort_values("date")["rolling_mean_t1"].values
+        # Pour une moyenne glissante sur X semaines, on doit garder les X dernière semaines. 
 
+    def predict(self, horizon):
+        """
+        Prédit les quantités pour l'horizon donné. Utilise la moyenne glissante avec ajout de variation aléatoire.
+        horizon : nombre de semaines à prédire
+        family : famille de produits à prédire
+        """
+        predictions = []
+        # Dernière date du dataset
+        last_date = self.lookup["date"].max()
 
-def add_temporal_features(df, date_col="date"):
+        # Pour chaque semaine de l'horizon, prédire la quantité en utilisant les X dernières semaines
+        for i in range(horizon):
+            # On calcule la date de la semaine à prédire
+            next_date = last_date + pd.Timedelta(weeks=i + 1)
+
+            # Calcul de la fenêtre (X dernières semaines)
+            window_start = next_date - pd.Timedelta(weeks=self.window)
+            window_data = self.lookup[(self.lookup["date"] >= window_start) & (self.lookup["date"] < next_date)]
+            print(window_data)
+
+            # Moyenne des quantités pour la fenêtre
+            mean_quantity = window_data["quantity"].mean()
+
+            # Variation aléatoire
+            variation = np.random.uniform(-self.variation_factor, self.variation_factor) * mean_quantity
+            prediction = mean_quantity + variation
+
+            predictions.append({"date": next_date, "quantity": prediction})
+            # On ajoute la prediction au lookup pour la prochaine itération
+            self.lookup = pd.concat([self.lookup, pd.DataFrame({"date": [next_date], "quantity": [prediction]})], ignore_index=True)
+
+        return pd.DataFrame(predictions)
+
+def predict_with_naive(df, periods=6, freq="W-MON", date_col="date", quantity_col="quantity"):
+    """
+    Prédit les quantités avec le modèle Naïf (moyenne mobile sur 3 semaines) et ajout de variation
+    """
     df = df.copy()
-    df[date_col] = pd.to_datetime(df[date_col])
-    df["month"] = df[date_col].dt.month
-    df["year"] = df[date_col].dt.year
-    df["week"] = df[date_col].dt.isocalendar().week
-    df["week_start"] = df[date_col] - pd.to_timedelta(df[date_col].dt.weekday, unit='D')
-    df["week_start"] = df["week_start"].dt.normalize()
-    return df
+    df = add_temporal_features(df, date_col=date_col)
 
-
-
-def save_model_pkl(model, method, family, path_dir="models"):
-    """
-    Sauvegarde un modèle XGBoost ou Naïf sous format .pkl
-    """
-    filename = f"model_{method.lower()}_{family.lower()}.pkl"
-    path = os.path.join(path_dir, filename)
-    joblib.dump(model, path)
-
+    # Créer une copie pour la prédiction avec une variation
+    model = NaiveRollingMeanModel(df, window=3, variation_factor=0.05)
+    predictions = model.predict(periods)
+    #renomer quantity en prediction
+    predictions = predictions.rename(columns={"quantity": "prediction"})
+    
+    return predictions
 
 
 ######## Partie XGBoost ########
@@ -127,6 +168,17 @@ def train_prophet_model(df, date_col="date", quantity_col="quantity"):
 
     return model
 
+def predict_with_prophet(model, periods=6, freq="W-MON", return_only_future=True):
+    future = model.make_future_dataframe(periods=periods, freq=freq)
+    forecast = model.predict(future)
+    forecast = forecast[["ds", "yhat"]].rename(columns={"ds": "date", "yhat": "prediction"})
+
+    if return_only_future:
+        last_train_date = model.history["ds"].max()
+        forecast = forecast[forecast["date"] > last_train_date]
+
+    return forecast
+
 def save_prophet_model(model, family, path_dir="models"):
     """
     Sauvegarde un modèle Prophet sous format .json
@@ -157,14 +209,6 @@ def train_all_models(df):
         weekly = df_fam.groupby("week_start").agg({"quantity": "sum"}).reset_index()
         weekly = weekly.rename(columns={"week_start": "date"})
 
-        ##### Naïf #####
-        naive_df = weekly.copy()
-        naive_df["rolling_mean_t1"] = naive_df["quantity"].shift(1).rolling(3).mean()
-        naive_df["family"] = fam
-        forecast_df = naive_df.dropna(subset=["rolling_mean_t1"])
-        naive_model = NaiveMeanModel(forecast_df)
-        save_model_pkl(naive_model, method="naive", family=fam)
-
         ##### XGBoost #####
         xgb_df = build_features(weekly.copy())
         xgb_df["family"] = fam
@@ -179,17 +223,6 @@ def train_all_models(df):
         print(f"✅ Modèles sauvegardés pour : {fam}")
 
 
-
-def predict_with_prophet(model, periods=6, freq="W-MON", return_only_future=True):
-    future = model.make_future_dataframe(periods=periods, freq=freq)
-    forecast = model.predict(future)
-    forecast = forecast[["ds", "yhat"]].rename(columns={"ds": "date", "yhat": "prediction"})
-
-    if return_only_future:
-        last_train_date = model.history["ds"].max()
-        forecast = forecast[forecast["date"] > last_train_date]
-
-    return forecast
 
 if __name__ == "__main__":
     # Exemple d'utilisation
