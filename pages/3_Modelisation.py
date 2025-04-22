@@ -10,6 +10,49 @@ from src.modeling import (
 
 st.set_page_config(page_title="🧠 Modélisation des ventes", page_icon="🧠")
 
+st.markdown(f"""
+<style>
+.navbar {{
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background-color: #1e1e1e;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid #444;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    font-size: 1.1rem;
+    font-weight: 500;
+}}
+
+.navbar a {{
+    text-decoration: none;
+    color: #f0f0f0;
+    padding: 0.4rem 1.2rem;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}}
+
+.navbar a:hover {{
+    background-color: #333333;
+}}
+
+.navbar a.active {{
+    background-color: #6c63ff;
+    color: white;
+}}
+</style>
+
+<div class="navbar">
+    <a href="/" target="_self">📦 Contexte</a>
+    <a href="/Analyse_ventes" target="_self">📊 Analyse</a>
+    <a href="/Modelisation" class="active" target="_self">🧠 Modélisation</a>
+    <a href="/Analyse_graphes" target="_self">🔗 Graphes</a>
+</div>
+""", unsafe_allow_html=True)
+
+
 st.title("🧠 Prédiction des ventes par famille de produits")
 
 st.markdown(
