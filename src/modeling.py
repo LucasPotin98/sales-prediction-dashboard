@@ -19,20 +19,30 @@ def add_rolling_features(df, col='quantity', windows=[3]):
 
 def prepare_aggregated(df, date_col='date', family_col='family', quantity_col='quantity'):
     df = df.copy()
-    df = add_temporal_features(df, date_col=date_col)
-    # Aggregation par semaine + année et date
-    
-    weekly_sales_by_family = df.groupby(['family', 'year','month', 'week','week_start']).agg(
-        {
-            'price_initial': 'mean',  # Average selling price
-            'price_sold': 'mean',  # Average initial price
-            'revenue': 'sum',
-            'discount_amount': 'sum',
-            'quantity': 'sum'  # Total quantity sold
-        }
-    ).reset_index()
-    weekly_sales_by_family = weekly_sales_by_family.rename(columns={"week_start": "date"})
-    return weekly_sales_by_family
+    df[date_col] = pd.to_datetime(df[date_col])
+
+    # Calcul de la date de début de semaine (toujours un lundi)
+    df["week_start"] = df[date_col] - pd.to_timedelta(df[date_col].dt.weekday, unit="D")
+
+    # On extrait année, semaine et mois depuis cette date pivot
+    df["year"] = df["week_start"].dt.isocalendar().year
+    df["week"] = df["week_start"].dt.isocalendar().week
+    df["month"] = df["week_start"].dt.month
+
+    # Agrégation par semaine/famille
+    weekly_sales = df.groupby([family_col, "year", "month", "week", "week_start"]).agg({
+        "price_initial": "mean",
+        "price_sold": "mean",
+        "revenue": "sum",
+        "discount_amount": "sum",
+        quantity_col: "sum"
+    }).reset_index()
+
+    # On renomme week_start en date pour la suite (prévisions)
+    weekly_sales = weekly_sales.rename(columns={"week_start": "date"})
+
+    return weekly_sales
+
 
 
 def build_features(df, lag_col='quantity', lags=[1], rolling_windows=[3]):
@@ -104,7 +114,15 @@ def train_xgboost_model(df, target_col="quantity", date_col="date"):
 def train_prophet_model(df, date_col="date", quantity_col="quantity"):
     df = df.copy()
     df = df.rename(columns={date_col: "ds", quantity_col: "y"})
-    model = Prophet(weekly_seasonality=True, yearly_seasonality=True, daily_seasonality=False)
+    model = Prophet(
+        yearly_seasonality=True,
+        weekly_seasonality=True,
+        daily_seasonality=False,
+        seasonality_mode="multiplicative",           # utile si les variations saisonnières sont + fortes quand les ventes sont hautes
+        changepoint_prior_scale=0.1,                 # plus de flexibilité sur les ruptures de tendance
+        seasonality_prior_scale=15.0,                # on autorise de fortes variations saisonnières
+        changepoint_range=0.9                        # on laisse Prophet capter des changements même en fin de période
+    )
     model.fit(df)
 
     return model

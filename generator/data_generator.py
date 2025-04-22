@@ -34,36 +34,27 @@ for family in families:
             "family": family,
             "price_initial": price
         })
-
 products_df = pd.DataFrame(products)
 
-# Création des profils clients
+# Profils clients
 client_profiles = {
-    f"C{i:04}": random.choices(
-        ["sportif", "formel", "urbain"],
-        weights=[0.3, 0.3, 0.4]
-    )[0]
+    f"C{i:04}": random.choices(["sportif", "formel", "urbain"], weights=[0.3, 0.3, 0.4])[0]
     for i in range(1, n_clients + 1)
 }
 
-# 🎯 Nouveau : Effets saisonniers marqués
+# 🎯 Saisonnalité par famille et mois
 def seasonal_multiplier(family, month):
-    if family == "Hoodie":
-        if month in [12, 1]:
-            return 3.0  # Pic central (décembre, janvier)
-        elif month in [11, 2]:
-            return 2.0  # Bords de saison
-        else:
-            return 0.6  # Hors saison
-
-    elif family == "Activewear":
-        if month in [6, 7]:
-            return 3.2
-        elif month in [5, 8]:
+    if family == "Activewear":
+        if month == 5:
             return 2.0
+        elif month == 6:
+            return 3.2  # pic fort début été
+        elif month in [7, 8]:
+            return 2.5  # plateau lissé
         else:
             return 0.6
-
+    elif family == "Hoodie":
+        return 1.1  # quasi-plat, dépend surtout des remises
     elif family == "Shirt":
         if month in [4, 5]:
             return 2.2
@@ -71,12 +62,23 @@ def seasonal_multiplier(family, month):
             return 1.5
         else:
             return 0.9
-
     return 1.0
 
-# 🔁 Génération des transactions (version lissée + pics)
+# 🔁 Modulateur hebdo doux (forme en cloche)
+def weekly_modulator(week_number):
+    return 1 + 0.5 * np.exp(-((week_number - 26) / 4)**2)
+
+# 🔄 Génération des transactions
 def generate_transactions(dates, n_days):
     transactions = []
+
+    # Base stable hebdomadaire
+    weekly_quantity_map = {}
+    for date in dates:
+        year, week = date.isocalendar().year, date.isocalendar().week
+        for fam in families:
+            weekly_quantity_map[(year, week, fam)] = np.random.normal(loc=5, scale=0.1)
+
     for _ in range(n_days):
         client_id = f"C{random.randint(1, n_clients):04}"
         profile = client_profiles[client_id]
@@ -94,9 +96,13 @@ def generate_transactions(dates, n_days):
 
         for fam in chosen_families:
             product = products_df[products_df["family"] == fam].sample(1).iloc[0]
-            base_quantity = np.random.normal(loc=5, scale=1)  # stable, peu de variance
-            quantity = int(np.clip(base_quantity * seasonal_multiplier(fam, month), 1, 25))
             base_price = product["price_initial"]
+
+            year, week = date.isocalendar().year, date.isocalendar().week
+            base_quantity = weekly_quantity_map[(year, week, fam)]
+            seasonal = seasonal_multiplier(fam, month)
+            modulation = weekly_modulator(week)
+            quantity = int(np.clip(base_quantity * seasonal * modulation, 1, 25))
 
             discount = round(
                 np.random.uniform(0.1, 0.3 if channel == "Online" else 0.2) * base_price, 2
@@ -121,11 +127,11 @@ def generate_transactions(dates, n_days):
 
     return pd.DataFrame(transactions)
 
-# Génération
+# Génération des jeux
 train_df = generate_transactions(train_dates, n_days=6000)
 test_df = generate_transactions(test_dates, n_days=1500)
 
-# 💥 Ajout d’anomalies et NaN dans le train uniquement
+# 💥 Anomalies et NaN dans le train
 outliers = np.random.choice(train_df.index, size=20, replace=False)
 train_df.loc[outliers, "quantity"] *= 10
 train_df.loc[outliers, "revenue"] = train_df.loc[outliers, "price_sold"] * train_df.loc[outliers, "quantity"]
@@ -138,4 +144,4 @@ os.makedirs("data/raw", exist_ok=True)
 train_df.to_csv("data/raw/transactions.csv", index=False)
 test_df.to_csv("data/raw/transactions_test.csv", index=False)
 
-print("✅ Données générées avec saisonnalité marquée et lissage hebdo.")
+print("✅ Données régénérées avec saisonnalité lissée, modulateur hebdo et structure réaliste.")

@@ -1,6 +1,6 @@
 # 🛍️ 12 semaines pour prédire la demande — une app Streamlit pour le retail
 
-> 🧠 3 modèles. 🛍️ 3 familles. 🔁 1 pipeline glissant pour anticiper les ventes.
+> Prévoir la demande, révéler les connexions.
 
 ---
 
@@ -8,7 +8,9 @@
 
 Comment prévoir la demande de vêtements à moyen terme ?  
 Ce projet simule une problématique concrète du retail : **prédire les quantités vendues sur plusieurs semaines**, à partir de données réalistes (produits, remises, saisonnalité…).
-
+Pour aller plus loin, le projet intègre une **analyse par graphes** :
+- 🔗 **Graphe de co-achats** : pour visualiser les produits fréquemment achetés ensemble
+- 👥 **Segmentation client** : pour comprendre les comportements par groupes de clients
 
 ---
 

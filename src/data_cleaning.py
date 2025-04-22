@@ -18,7 +18,7 @@ def handle_missing_values(df):
     return df
 
 
-def handle_outliers(df, col="quantity", threshold=3):
+def handle_outliers(df, col="quantity", threshold=30):
     df = df.copy()
     mean = df[col].mean()
     std = df[col].std()
