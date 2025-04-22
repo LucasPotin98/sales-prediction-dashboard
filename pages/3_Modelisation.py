@@ -131,7 +131,7 @@ if st.button("Lancer la modélisation"):
     y_true = df_eval["quantity"]
     y_pred = df_eval["prediction"]
     
-    rmse = mean_squared_error(y_true, y_pred, squared=False)
+    rmse = mean_squared_error(y_true, y_pred) ** 0.5
     mae = mean_absolute_error(y_true, y_pred)
     r2 = r2_score(y_true, y_pred)
     st.subheader("📈 Courbe des ventes réelles vs prédites")
