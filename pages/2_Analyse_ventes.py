@@ -1,8 +1,14 @@
+import json
 import streamlit as st
 from app.utils import load_data
 from app.figures import plot_seasonality, plot_family_distribution
 from src.analysis import compute_seasonality, compute_family_distribution
 st.set_page_config(page_title="Analyse des ventes", page_icon="📊")
+
+
+with open("commentaires/commentaires.json", "r") as f:
+    comments_data = json.load(f)
+
 
 st.markdown(f"""
 <style>
@@ -76,8 +82,14 @@ if not selected_families:
 st.subheader("📅 Saisonnalité des ventes")
 seasonality_df = compute_seasonality(df, selected_families)
 plot_seasonality(seasonality_df)
+st.subheader("💬 Commentaires de l'analyse saisonnière")
+for family in selected_families:
+    st.markdown(comments_data["analyses"]["saisonnalite"][family])
 
 # Graphe 2 : Concentration des ventes
 st.subheader("📦 Répartition des ventes par produit")
 distribution_df = compute_family_distribution(df, selected_families)
 plot_family_distribution(distribution_df, selected_families)
+st.subheader("💬 Commentaires de la répartition des ventes")
+for family in selected_families:
+    st.markdown(comments_data["analyses"]["repartition_ventes"][family])

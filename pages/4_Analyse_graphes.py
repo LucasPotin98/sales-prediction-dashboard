@@ -50,7 +50,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Titre
-st.title("🔗 Analyse par Graphes")
+st.title("🔗 Analyse par graphes")
 
 # Intro
 st.markdown(

@@ -1,0 +1,50 @@
+{
+    "analyses": {
+      "saisonnalite": {
+        "Shirt": "Analyse des tendances saisonnières pour la famille Shirt. Les ventes augmentent particulièrement pendant le printemps et l'été.",
+        "Activewear": "Analyse des tendances saisonnières pour la famille Activewear. Les ventes sont en forte hausse durant l'été, avec des pics en juin et juillet.",
+        "Hoodie": "Analyse des tendances saisonnières pour la famille Hoodie. Les ventes sont plus importantes pendant l'hiver, avec un pic notable en décembre."
+      },
+      "repartition_ventes": {
+        "Shirt": "Les ventes de shirts sont principalement concentrées sur une sélection de produits à prix modéré, avec un léger biais vers les tailles plus grandes.",
+        "Activewear": "La répartition des ventes pour Activewear montre une préférence pour les produits à prix moyen, particulièrement dans la catégorie des vêtements de sport haut de gamme.",
+        "Hoodie": "Les ventes de hoodies sont dominées par des produits aux prix moyens et un choix de tailles plus petites très populaires."
+      }
+    },
+    "modelisation": {
+      "naive": {
+        "methodologie": "La méthode naïve repose sur une prédiction basée sur la valeur de la semaine précédente, moyennée sur les 3 dernières semaines.",
+        "features": ["Moyenne mobile sur 3 semaines"],
+        "avantages": "Simple à implémenter, rapide à calculer, idéal pour une première approche.",
+        "inconvenients": "Ne tient pas compte des tendances saisonnières et des autres facteurs externes.",
+        "analyse_familles": {
+          "Shirt": "Le modèle naïf pour Shirt offre une prévision basique mais robuste, capturant bien les ventes moyennes sans prendre en compte les variations saisonnières.",
+          "Activewear": "Le modèle naïf sous-estime les pics de vente d'Activewear durant les saisons fortes, mais reste utile pour des prévisions globales.",
+          "Hoodie": "Le modèle naïf pour Hoodie reste globalement stable, mais échoue à capter les pics hivernaux."
+        }
+      },
+      "xgboost": {
+        "methodologie": "XGBoost est un modèle d'apprentissage supervisé utilisant des arbres de décision boostés pour prédire les ventes en fonction de différentes caractéristiques temporelles et des ventes passées.",
+        "features": ["Semaine", "Mois", "Trimestre", "Prix des produits", "Remises", "Quantité de produits vendus dans la semaine précédente"],
+        "avantages": "Modèle puissant, capable de capturer des interactions complexes entre les variables.",
+        "inconvenients": "Modèle complexe et potentiellement plus long à entraîner, nécessite un réglage fin des hyperparamètres.",
+        "analyse_familles": {
+          "Shirt": "XGBoost pour Shirt est très efficace pour capturer les variations mensuelles et les périodes de promotions.",
+          "Activewear": "XGBoost réussit à capturer les pics de vente d'Activewear durant les mois d'été, mais nécessite un pré-traitement minutieux des données.",
+          "Hoodie": "Le modèle XGBoost pour Hoodie est capable de prédire avec précision les hausses de ventes durant les périodes de froid, en particulier les pics de fin d'année."
+        }
+      },
+      "prophet": {
+        "methodologie": "Prophet est un modèle de prévision basé sur des composants saisonniers et une tendance non linéaire, adapté aux séries temporelles avec des tendances multiples.",
+        "features": ["Date"],
+        "avantages": "Capable de gérer les tendances saisonnières et les jours fériés. Pratique pour les prévisions sur des séries temporelles avec des anomalies régulières.",
+        "inconvenients": "Le modèle est basé sur des hypothèses spécifiques et peut échouer si les données sont trop irrégulières.",
+        "analyse_familles": {
+          "Shirt": "Le modèle Prophet pour Shirt capture bien les effets saisonniers, mais pourrait sous-estimer les promotions locales.",
+          "Activewear": "Prophet excelle dans la modélisation des pics saisonniers pour Activewear, en particulier les hausses pendant l'été.",
+          "Hoodie": "Prophet est particulièrement performant sur Hoodie, capturant très bien les hausses de vente en hiver."
+        }
+      }
+    }
+  }
+  

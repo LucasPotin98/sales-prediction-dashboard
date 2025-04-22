@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 import streamlit as st
 from app.utils import load_data, load_model, load_prophet_model, load_all_data
@@ -9,6 +10,10 @@ from src.modeling import (
 
 
 st.set_page_config(page_title="🧠 Modélisation des ventes", page_icon="🧠")
+
+with open("commentaires/commentaires.json", "r") as f:
+    comments_data = json.load(f)
+
 
 st.markdown(f"""
 <style>
@@ -53,7 +58,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
-st.title("🧠 Prédiction des ventes par famille de produits")
+st.title("🧠 Prédiction des ventes par famille")
 
 st.markdown(
     "Cette page propose une modélisation supervisée pour prédire les quantités vendues par **famille de produits**, "
@@ -71,6 +76,20 @@ model_map = {
 }
 model_choice = st.radio("Modèle :", ["Naïf (valeur t−1)", "XGBoost", "Prophet"])
 model_key = model_map[model_choice]
+
+# Affichage des commentaires avant de lancer la modélisation
+st.subheader("💬 Commentaires sur la modélisation")
+if model_key == "naive":
+    st.markdown("### Modèle Naïf (valeur t−1)")
+elif model_key == "xgboost":
+    st.markdown("### Modèle XGBoost")
+elif model_key == "prophet":
+    st.markdown("### Modèle Prophet")
+
+st.markdown(f"**Méthodologie** : {comments_data['modelisation'][model_key]['methodologie']}")
+st.markdown(f"**Features** : {', '.join(comments_data['modelisation'][model_key]['features'])}")
+st.markdown(f"**Avantages** : {comments_data['modelisation'][model_key]['avantages']}")
+st.markdown(f"**Inconvénients** : {comments_data['modelisation'][model_key]['inconvenients']}")
 
 
 # Load du DS de Test :
