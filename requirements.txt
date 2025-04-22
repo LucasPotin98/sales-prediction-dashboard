@@ -1,10 +1,10 @@
 pandas
 numpy
-scikit-learn
+scikit-learn>=1.0
 xgboost
 prophet
 streamlit
 plotly
 faker
 joblib
-networkx
+networkx>3.0
