@@ -50,7 +50,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Titre
-st.title("🔗 Analyse par graphes")
+st.markdown("<h2 style='margin-bottom: 1rem;'>🔗 Analyse par graphes</h2>", unsafe_allow_html=True)
 
 # Intro
 st.markdown(
@@ -67,7 +67,7 @@ nb_products = st.slider(
     "Nombre de produits à inclure dans le graphe :",
     min_value=10,
     max_value=50,
-    value=30,
+    value=25,
     step=5,
     help="Seuls les produits les plus vendus seront pris en compte."
 )

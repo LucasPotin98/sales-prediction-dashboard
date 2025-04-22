@@ -57,7 +57,8 @@ st.markdown(f"""
 df = load_data()
 
 # Titre
-st.title("📊 Analyse exploratoire des ventes")
+st.markdown("<h2 style='margin-bottom: 1rem;'>📊 Analyse exploratoire des ventes</h2>", unsafe_allow_html=True)
+
 
 # Description courte
 st.markdown(

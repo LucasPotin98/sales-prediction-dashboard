@@ -58,7 +58,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
-st.title("🧠 Prédiction des ventes par famille")
+st.markdown("<h2 style='margin-bottom: 1rem;'>🧠 Prédiction des ventes par famille</h2>", unsafe_allow_html=True)
 
 st.markdown(
     "Cette page propose une modélisation supervisée pour prédire les quantités vendues par **famille de produits**, "
@@ -74,6 +74,16 @@ model_map = {
     "XGBoost": "xgboost",
     "Prophet": "prophet"
 }
+
+best_models_by_family = {
+    "Shirt": "XGBoost",
+    "Hoodie": "XGBoost",
+    "Activewear": "Prophet"
+}
+
+best_model = best_models_by_family.get(family, "N/A")
+st.markdown(f"🧠 **Modèle recommandé pour cette famille** : `{best_model}`")
+
 model_choice = st.radio("Modèle :", ["Naïf (valeur t−1)", "XGBoost", "Prophet"])
 model_key = model_map[model_choice]
 
@@ -134,3 +144,11 @@ if st.button("Lancer la modélisation"):
     col1.metric("RMSE", f"{rmse:,.0f}")
     col2.metric("MAE", f"{mae:,.0f}")
     col3.metric("R²", f"{r2:.3f}")
+
+    st.subheader("📝 Interprétation des résultats")
+    commentaire_model = comments_data.get("modelisation", {}).get(model_key, {}).get("analyse_familles", {}).get(family)
+
+    if commentaire_model:
+        st.markdown(f"**{commentaire_model}**")
+    else:
+        st.info("Aucun commentaire spécifique n’est encore défini pour cette combinaison famille/modèle.")
