@@ -1,4 +1,4 @@
-# 🛍️ Sales Prophet – Prédisez vos ventes en 3 étapes
+# 🛍️ Sales Prediction Dashboard – Prédisez vos ventes en 3 étapes
 
 > Un dashboard de prévision, des commentaires métiers, et une analyse des relations produits à explorer.
 
