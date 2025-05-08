@@ -1,45 +1,90 @@
 # 🛍️ Sales Prediction Dashboard – Prédisez vos ventes en 3 étapes
 
-> Un dashboard de prévision, des commentaires métiers, et une analyse des relations produits à explorer.
+> Un dashboard de prévision, des commentaires métier, et une analyse des relations produits à explorer.
 
 ---
 
 ## 🚀 Essayez l’application
 
 🟢 Application déployée ici :  
-**[Streamlit App →](https://sales-prediction-dashboard.streamlit.app/)**
-
-Aucune installation nécessaire.
+👉 **[Streamlit App →](https://sales-prediction-dashboard.streamlit.app/)**  
 
 ---
 
-## 🎯 Pourquoi ce projet ?
+## 🎯 Objectif du projet
 
-Comment prévoir la demande de vêtements à moyen terme ?  
-Ce projet simule une problématique concrète du retail : **prédire les quantités vendues sur plusieurs semaines**, à partir de données réalistes (produits, remises, saisonnalité…).
-Pour aller plus loin, le projet intègre une **analyse par graphes** :
-- 🔗 **Graphe de co-achats** : pour visualiser les produits fréquemment achetés ensemble
+Comment anticiper la demande dans le retail ?  
+Ce projet simule une problématique concrète : **prévoir les quantités vendues sur plusieurs semaines**, en tenant compte de données réalistes (famille produit, remises, saisonnalité…).
 
----
-
-## 🧭 Schéma  du projet
-
-![Retail Forecasting Pipeline](assets/schema_forecasting.png)
+Au-delà de la prévision, il intègre une **lecture structurelle par graphes** :  
+- 🔗 **Graphe de co-achats** : pour visualiser les liens entre produits fréquemment achetés ensemble
 
 ---
 
+## 🧭 Schéma du pipeline
 
-## 🧠 Un mot sur la donnée
+Voici l’architecture globale du projet, résumée en une image :
 
-Les données sont **simulées** à partir de schémas de vente inspirés du réel.  
-Elles contiennent :
-- 3 familles de produits (`hoodie`, `shirt`, `trackwear`)
-- des remises, des dates, des prix, des quantités
-- un historique sur **deux ans**, pour capter les effets saisonniers
+![Retail Forecasting Pipeline](Schéma.png)
+
+Ce schéma illustre les **3 grandes étapes** qui composent le cœur du pipeline :
 
 ---
 
-## ✍️ Auteur
+### 📥 1. Source de données
 
-Projet développé par [Lucas Potin](https://lucaspotin98.github.io/.fr)  
-Data Scientist | Modélisation & Graphes
+- Données simulées à partir de fichiers CSV (`ventes.csv`)
+- Historique de ventes multi-produits sur deux ans
+- Variables : dates, quantités, remises, prix, familles produits (`hoodie`, `shirt`, `trackwear`)
+
+---
+
+### 🛠️ 2. Préparation des données
+
+- Nettoyage, enrichissement et structuration avec `pandas`
+- Typage, gestion des valeurs manquantes, création de variables dérivées (remisé, saison, etc.)
+
+---
+
+### 📊 3. Analyse & Modélisation
+
+Étape centrale du projet, organisée en trois volets :
+
+#### 🔎 Analyse exploratoire
+- Bibliothèques : `pandas`, `plotly`
+- Objectif : visualiser les ventes par période, famille et produit
+
+#### 🔮 Prédiction
+- Modèles : `Prophet`, `XGBoost`
+- Objectif : estimer les quantités futures semaine par semaine
+
+#### 🔗 Modélisation graphe
+- Outil : `NetworkX`
+- Objectif : construire un graphe de co-achats pour explorer les liens entre produits
+
+---
+
+### 🌐 4. Dashboard interactif
+
+- Application construite avec `Streamlit`
+- Permet de :
+  - Visualiser les prévisions
+  - Naviguer dans les résultats par famille de produits
+  - Explorer le graphe de co-achats
+
+---
+
+## 🧠 À propos des données
+
+Les données sont **entièrement simulées**, mais structurées à partir de cas réels.  
+Elles incluent :
+- 🧥 3 familles de produits : `hoodie`, `shirt`, `trackwear`
+- 📉 Prix, remises, quantités, dates
+- 📆 Un historique de **2 ans** pour capter les effets saisonniers
+
+---
+
+## 👨‍💻 Auteur
+
+Projet développé par **[Lucas Potin](https://lucaspotin98.github.io/.fr)**  
+*Data Scientist – Modélisation & Graphes*
