@@ -25,7 +25,7 @@ Au-delà de la prévision, il intègre une **lecture structurelle par graphes** 
 
 Voici l’architecture globale du projet, résumée en une image :
 
-![Retail Forecasting Pipeline](Schéma.png)
+![Retail Forecasting Pipeline](Schema.png)
 
 Ce schéma illustre les **3 grandes étapes** qui composent le cœur du pipeline :
 
