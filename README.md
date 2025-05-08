@@ -86,5 +86,5 @@ Elles incluent :
 
 ## 👨‍💻 Auteur
 
-Projet développé par **[Lucas Potin](https://lucaspotin98.github.io/.fr)**  
+Projet développé par **[Lucas Potin](https://lucaspotin98.github.io/)**  
 *Data Scientist – Modélisation & Graphes*
