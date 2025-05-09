@@ -158,61 +158,25 @@ def plot_product_graph(G, color_map=None):
                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                         annotations=annotations  # Ajouter les annotations ici pour les légendes
                     ))
+    
+    # === Légende stylée, à droite ===
+    #Si plusieurs communautés, on les affiche
+    if len(communities) > 1:
+        annotations = []
+        for i, color in color_lookup.items():
+            annotations.append(dict(
+                x=1.00, y=0.20 - 0.06 * i,
+                xref="paper", yref="paper",
+                text=f"<b>Communauté {i}</b>",
+                showarrow=False,
+                font=dict(size=16, color="white"),
+                bgcolor=color,
+                bordercolor="white",
+                borderwidth=1,
+                align="center",
+                opacity=0.9
+            ))
+        fig.update_layout(annotations=annotations)
     return fig
 
 
-def plot_communities(G, communities):
-    # Mapping noeud -> cluster id
-    node_color_map = {}
-    for i, community in enumerate(communities):
-        for node in community:
-            node_color_map[node] = i
-
-    pos = nx.spring_layout(G, seed=42)
-
-    edge_trace = go.Scatter(x=[], y=[], line=dict(width=0.5, color="#888"),
-                            hoverinfo="none", mode="lines")
-    for u, v in G.edges():
-        x0, y0 = pos[u]
-        x1, y1 = pos[v]
-        edge_trace["x"] += (x0, x1, None)
-        edge_trace["y"] += (y0, y1, None)
-
-    node_trace = go.Scatter(
-        x=[],
-        y=[],
-        text=[],
-        mode="markers+text",
-        textposition="top center",
-        hoverinfo="text",
-        marker=dict(
-            showscale=True,
-            colorscale="Viridis",
-            color=[],
-            size=15,
-            colorbar=dict(
-                thickness=15,
-                title="Cluster",
-                xanchor="left",
-                titleside="right"
-            )
-        )
-    )
-
-    for node in G.nodes():
-        x, y = pos[node]
-        node_trace["x"] += (x,)
-        node_trace["y"] += (y,)
-        node_trace["marker"]["color"] += (node_color_map[node],)
-        node_trace["text"] += (node,)
-
-    fig = go.Figure(data=[edge_trace, node_trace],
-                    layout=go.Layout(
-                        title="Communautés de produits (Louvain)",
-                        title_x=0.5,
-                        showlegend=False,
-                        margin=dict(b=20, l=5, r=5, t=40),
-                        xaxis=dict(showgrid=False, zeroline=False),
-                        yaxis=dict(showgrid=False, zeroline=False)
-                    ))
-    return fig
