@@ -78,6 +78,7 @@ Ce schéma illustre les **4 grandes étapes** qui composent le cœur du pipeline
 - Python, pandas, plotly, Prophet, XGBoost, NetworkX
 - Streamlit pour l’interface utilisateur
 
+---
 
 ## À propos des données
 
