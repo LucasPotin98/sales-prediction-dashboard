@@ -27,7 +27,7 @@ Voici l’architecture globale du projet, résumée en une image :
 
 ![Retail Forecasting Pipeline](Schema.png)
 
-Ce schéma illustre les **3 grandes étapes** qui composent le cœur du pipeline :
+Ce schéma illustre les **4 grandes étapes** qui composent le cœur du pipeline :
 
 ---
 
@@ -73,6 +73,11 @@ Ce schéma illustre les **3 grandes étapes** qui composent le cœur du pipeline
   - Explorer le graphe de co-achats
 
 ---
+
+## Stack technique
+- Python, pandas, plotly, Prophet, XGBoost, NetworkX
+- Streamlit pour l’interface utilisateur
+
 
 ## À propos des données
 
