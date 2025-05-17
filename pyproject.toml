@@ -1,3 +1,4 @@
 [tool.ruff]
-line-length = 88  # ou ce que tu veux
-format = true
+line-length = 88 
+
+[tool.ruff.format]
