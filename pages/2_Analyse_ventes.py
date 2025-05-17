@@ -3,6 +3,7 @@ import streamlit as st
 from app.utils import load_data
 from app.figures import plot_seasonality, plot_family_distribution
 from src.analysis import compute_seasonality, compute_family_distribution
+
 st.set_page_config(page_title="Analyse des ventes", page_icon="📊")
 
 
@@ -10,9 +11,10 @@ with open("commentaires/commentaires.json", "r") as f:
     comments_data = json.load(f)
 
 
-st.markdown(f"""
+st.markdown(
+    """
 <style>
-.navbar {{
+.navbar {
     position: sticky;
     top: 0;
     z-index: 999;
@@ -24,24 +26,24 @@ st.markdown(f"""
     gap: 2rem;
     font-size: 1.1rem;
     font-weight: 500;
-}}
+}
 
-.navbar a {{
+.navbar a {
     text-decoration: none;
     color: #f0f0f0;
     padding: 0.4rem 1.2rem;
     border-radius: 6px;
     transition: background-color 0.2s ease;
-}}
+}
 
-.navbar a:hover {{
+.navbar a:hover {
     background-color: #333333;
-}}
+}
 
-.navbar a.active {{
+.navbar a.active {
     background-color: #6c63ff;
     color: white;
-}}
+}
 </style>
 
 <div class="navbar">
@@ -50,14 +52,19 @@ st.markdown(f"""
     <a href="/Modelisation" target="_self">🧠 Modélisation</a>
     <a href="/Analyse_graphes" target="_self">🔗 Graphes</a>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # Chargement des données
 df = load_data()
 
 # Titre
-st.markdown("<h2 style='margin-bottom: 1rem;'>📊 Analyse exploratoire des ventes</h2>", unsafe_allow_html=True)
+st.markdown(
+    "<h2 style='margin-bottom: 1rem;'>📊 Analyse exploratoire des ventes</h2>",
+    unsafe_allow_html=True,
+)
 
 
 # Description courte
@@ -70,13 +77,15 @@ st.markdown(
 # Choix des familles
 selected_families = st.multiselect(
     "Sélectionnez une ou plusieurs familles de produits :",
-    options=df['family'].unique().tolist(),
-    default=df['family'].unique().tolist()
+    options=df["family"].unique().tolist(),
+    default=df["family"].unique().tolist(),
 )
 
 # Message si rien n'est sélectionné
 if not selected_families:
-    st.warning("Veuillez sélectionner au moins une famille pour afficher les visualisations.")
+    st.warning(
+        "Veuillez sélectionner au moins une famille pour afficher les visualisations."
+    )
     st.stop()
 
 # Graphe 1 : Saisonnalité

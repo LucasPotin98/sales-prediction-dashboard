@@ -1,8 +1,8 @@
-import pandas as pd
 import networkx as nx
 from itertools import combinations
 from collections import Counter
 from networkx.algorithms.community import louvain_communities
+
 
 def build_graph_cooccurrence(df, min_edge_weight=2):
     """

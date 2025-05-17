@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 from app.utils import load_data
 from app.figures import plot_product_graph
 from src.graphes import build_graph_cooccurrence, compute_louvain_communities
@@ -7,9 +6,10 @@ from src.graphes import build_graph_cooccurrence, compute_louvain_communities
 st.set_page_config(page_title="🔗 Analyse Graphe", page_icon="🔗")
 
 # Barre de navigation
-st.markdown(f"""
+st.markdown(
+    """
 <style>
-.navbar {{
+.navbar {
     position: sticky;
     top: 0;
     z-index: 999;
@@ -21,24 +21,24 @@ st.markdown(f"""
     gap: 2rem;
     font-size: 1.1rem;
     font-weight: 500;
-}}
+}
 
-.navbar a {{
+.navbar a {
     text-decoration: none;
     color: #f0f0f0;
     padding: 0.4rem 1.2rem;
     border-radius: 6px;
     transition: background-color 0.2s ease;
-}}
+}
 
-.navbar a:hover {{
+.navbar a:hover {
     background-color: #333333;
-}}
+}
 
-.navbar a.active {{
+.navbar a.active {
     background-color: #6c63ff;
     color: white;
-}}
+}
 </style>
 
 <div class="navbar">
@@ -47,10 +47,15 @@ st.markdown(f"""
     <a href="/Modelisation" target="_self">🧠 Modélisation</a>
     <a href="/Analyse_graphes" class="active" target="_self">🔗 Graphes</a>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # Titre
-st.markdown("<h2 style='margin-bottom: 1rem;'>🔗 Analyse par graphes</h2>", unsafe_allow_html=True)
+st.markdown(
+    "<h2 style='margin-bottom: 1rem;'>🔗 Analyse par graphes</h2>",
+    unsafe_allow_html=True,
+)
 
 # Intro
 st.markdown(
@@ -69,7 +74,7 @@ nb_products = st.slider(
     max_value=50,
     value=25,
     step=5,
-    help="Seuls les produits les plus vendus seront pris en compte."
+    help="Seuls les produits les plus vendus seront pris en compte.",
 )
 
 # Filtrage dynamique selon le slider
@@ -84,7 +89,9 @@ G = build_graph_cooccurrence(df_top, min_edge_weight=20)
 with st.container():
     st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
     st.markdown("### 🎯 Graphe de co-achats entre produits", unsafe_allow_html=True)
-    detect = st.button("🧩 Détecter les communautés (Louvain)", use_container_width=False)
+    detect = st.button(
+        "🧩 Détecter les communautés (Louvain)", use_container_width=False
+    )
     st.markdown("</div>", unsafe_allow_html=True)
 
 # Application de Louvain si cliqué
