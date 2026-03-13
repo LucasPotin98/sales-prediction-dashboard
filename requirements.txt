@@ -3,7 +3,7 @@ numpy
 scikit-learn
 xgboost
 prophet
-streamlit
+streamlit==1.31.1
 plotly
 faker
 joblib
