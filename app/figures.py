@@ -7,12 +7,6 @@ import matplotlib.cm as cm
 
 def plot_seasonality(seasonality_df):
 
-    seasonality_df["quantity"] = (
-    seasonality_df["quantity"]
-    .astype(str)
-    .str.replace(",", "", regex=False)
-    .astype(int)
-    )
     fig = px.line(
         seasonality_df,
         x="month",
