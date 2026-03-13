@@ -3,8 +3,8 @@ numpy
 scikit-learn
 xgboost
 prophet
-streamlit==1.31.0
-plotly==2.4
+streamlit==1.33.0
+plotly>=4.0.0
 faker
 joblib
 networkx>3.0
